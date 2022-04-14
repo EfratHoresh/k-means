@@ -10,8 +10,8 @@ void discover_n_d(char input[], int n_d[2]);
 void fill_mat(char input[], double** vectors);
 int is_number(char s[]);
 void update_u(double* new_centroid, int* cluster_of_vector, double** vectors, int d, int n, int clust_num);
-int argmin(double x[], double** centroids, int n);
-double occlid_distance(double x1[], double x2[]);
+int argmin(double x[], double** centroids, int n, int d);
+double occlid_distance(double x1[], double x2[], int d);
 
 
 
@@ -60,43 +60,62 @@ void kmeans(int k, int max_iter, char input[], char output[]) {
     }
     fill_mat(input, vectors);
     double** centroids = malloc(k*sizeof(double*)); //create centroids
-    for (int i =0; i <k; i++){
+    for (int i =0; i < k; i++){
         centroids[i] = malloc(d*sizeof(double));
         for (int j =0; j <d; j++){
             centroids[i][j] = vectors[i][j];
+        }
     }
-    }
+
     int* cluster_of_vector = malloc(n*sizeof(int)); //cluster_of_vector[i]==cluster of xi vector
-    int num_of_loops =0;
+    int num_of_loops = 0;
     while(1==1){
         for (int i=0; i<n; i++) {
-            cluster_of_vector[i] = argmin(vectors[i], centroids, n);
+            cluster_of_vector[i] = argmin(vectors[i], centroids, k, d);
         }
+        
         double* norms = malloc(k*sizeof(double));
         double* new_centroid = malloc(d*sizeof(double));
         for (int clust_num=0; clust_num<k; clust_num++) {
             update_u(new_centroid, cluster_of_vector, vectors, d, n, clust_num);
-            norms[clust_num] = sqrt(occlid_distance(new_centroid, centroids[clust_num]));
+            norms[clust_num] = sqrt(occlid_distance(new_centroid, centroids[clust_num], d));
             for (int j=0; j<d; j++) {
                 centroids[clust_num][j] = new_centroid[j];
             }
         }
         num_of_loops++;
-        double max_norm;
-        int is_bigger_than_e;
+        int is_bigger_than_e = 0;
         for (int i=0; i<k; i++) {
-            if (norms[i] > e) {
+            if (norms[i] >= e) {
                 is_bigger_than_e = 1;
                 break;
             }
         }
-        if (num_of_loops>=max_iter || is_bigger_than_e==0) {
-            for (int i=0; i<k; i++){
-            printf("norm %d=%f\n", i, norms[i]);
-            }
+        if (num_of_loops >= max_iter || is_bigger_than_e==0) {
             break;
         }
     }
+
+    // print all centroids:
+    // int row, columns;
+    // for (row=0; row<k; row++)
+    // {
+    //     for(columns=0; columns<d; columns++)
+    //     {
+    //         printf("%f     ", centroids[row][columns]);
+    //     }
+    //     printf("\n");
+    // }
+
+    // for (int i=0; i<n; i++)
+    // {
+    //     printf("%d     ,", cluster_of_vector[i]);
+    // }
+
+    printf("iteration number: %d\n", num_of_loops);
+    printf("max iter: %d\n", max_iter);
+
+
     printf("BYEE");
 }
 
@@ -106,7 +125,7 @@ void kmeans(int k, int max_iter, char input[], char output[]) {
     // {
     //     for(columns=0; columns<d; columns++)
     //     {
-    //         printf("%f     ", centroids[row][columns]);
+    //         printf("%.4f     ", centroids[row][columns]);
     //     }
     //     printf("\n");
     // }
@@ -165,22 +184,32 @@ int is_number(char s[]) {
     return 1;
 }
 
-double occlid_distance(double x1[], double x2[]) {
-    int distance = 0;
-    int len = sizeof(x1) / sizeof(double);
-
-    for (int i=0; i<len ;i++) {
-        distance+=pow(x1[i]-x2[i], 2);
+double occlid_distance(double x1[], double x2[], int d) {
+    double distance = 0;
+    for (int i=0; i < d ;i++) {
+        distance += pow(x1[i]-x2[i], 2);
     }
     return distance;
 }
 
-int argmin(double x[], double** centroids, int n) {
+int argmin(double x[], double** centroids, int k, int d) {
+
+    // int row, columns;
+    // for (row=0; row<n; row++)
+    // {
+    //     for(columns=0; columns<d; columns++)
+    //     {
+    //         printf("%f     ", centroids[row][columns]);
+    //     }
+    //     printf("\n");
+    // }
+
     int index = 0;
-    double min_distance = occlid_distance(x, centroids[0]);
+    // double min_distance = occlid_distance(x, centroids[0], d);
+    double min_distance = INFINITY;
     double distance = 0;
-    for (int j=0; j<n; j++) {
-        distance = occlid_distance(x, centroids[j]);
+    for (int j=0; j<k; j++) {
+        distance = occlid_distance(x, centroids[j], d);
         if (distance < min_distance) {
             min_distance = distance;
             index = j;
@@ -190,7 +219,7 @@ int argmin(double x[], double** centroids, int n) {
 }
 
 void update_u(double* new_centroid, int* cluster_of_vector, double** vectors, int d, int n, int clust_num) {
-    int num_vectors_in_cluster=0;
+    int num_vectors_in_cluster = 0;
     for (int i=0; i<n; i++) {
         if (cluster_of_vector[i]==clust_num) {
             num_vectors_in_cluster++;
@@ -202,5 +231,6 @@ void update_u(double* new_centroid, int* cluster_of_vector, double** vectors, in
     for (int i=0; i<d; i++) {
         new_centroid[i] = new_centroid[i] / num_vectors_in_cluster;
     }
+    // printf("In cluster %d we have %d vectors.\n", clust_num, num_vectors_in_cluster);
     return;
 }
